@@ -1,10 +1,9 @@
-use fastly::http::{HeaderValue, Method, StatusCode};
-use fastly::request::downstream_client_ip_addr;
+use fastly::experimental::uap_parse;
 use fastly::geo::geo_lookup;
-use fastly::{Body, Error, Request, RequestExt, Response, ResponseExt};
-use fastly::uap_parse;
-use std::convert::TryFrom;
+use fastly::http::{Method, StatusCode};
+use fastly::{Body, Error, Request, Response};
 use serde_json;
+use std::convert::TryFrom;
 
 const BACKEND: &str = "backend";
 
@@ -12,94 +11,77 @@ const BACKEND: &str = "backend";
 const HTTPBIN: &str = "httpbin";
 
 #[fastly::main]
-fn main(mut req: Request<Body>) -> Result<impl ResponseExt, Error> {
-    if req.headers().contains_key("httpbin-proxy") {
-        return req.send(HTTPBIN)
+fn main(mut req: Request) -> Result<Response, Error> {
+    if req.get_header("httpbin-proxy").is_some() {
+        return Ok(req.send(HTTPBIN)?);
     }
 
-    match (req.method(), req.uri().path()) {
-        (&Method::GET, "/simple-response") => Ok(Response::builder()
-            .status(StatusCode::OK)
-            .body(Body::try_from("Hello, world!")?)?
-        ),
+    match (req.get_method(), req.get_url().path()) {
+        (&Method::GET, "/simple-response") => {
+            Ok(Response::from_status(StatusCode::OK).with_body("Hello, world!"))
+        }
 
-        (&Method::GET, "/no-body") => Ok(Response::builder()
-            .status(StatusCode::NO_CONTENT)
-            .body(Body::new()?)?),
+        (&Method::GET, "/no-body") => {
+            Ok(Response::from_status(StatusCode::NO_CONTENT).with_body(""))
+        }
 
         (&Method::GET, "/user-agent") => {
-            let ua = req.headers().get("user-agent");
-            let result = match ua {
-                Some(inner) => {
-                    uap_parse(inner.to_str()?)
-                },
+            let result = match req.get_header(fastly::http::header::USER_AGENT) {
+                Some(ua) => uap_parse(ua.to_str()?),
                 None => uap_parse(""),
             };
             let s = match result {
                 Ok((family, major, minor, patch)) => {
-                    format!("{} {}.{}.{}",
-                            family,
-                            major.unwrap_or("0".to_string()),
-                            minor.unwrap_or("0".to_string()),
-                            patch.unwrap_or("0".to_string())
+                    format!(
+                        "{} {}.{}.{}",
+                        family,
+                        major.unwrap_or("0".to_string()),
+                        minor.unwrap_or("0".to_string()),
+                        patch.unwrap_or("0".to_string())
                     )
-                },
-                Err(_) => { "error".to_string() },
+                }
+                Err(_) => "error".to_string(),
             };
-            Ok(Response::builder()
-               .status(StatusCode::OK)
-               .body(Body::try_from(s)?)?)
-        },
+            Ok(Response::from_status(StatusCode::OK).with_body(s))
+        }
 
         (&Method::GET, "/append-header") => {
-            req.headers_mut().insert("test-header", HeaderValue::from_static("test-value"));
-            req.send(BACKEND)
-        },
+            req.set_header("test-header", "test-value");
+            Ok(req.send(BACKEND)?)
+        }
 
         (&Method::GET, "/append-body") => {
             let other = Body::try_from("appended")?;
-            let rw = Response::new(Body::try_from("original\n")?);
-            let (mut parts, mut body) = rw.into_parts();
-            body.append(other)?;
-            parts.status = StatusCode::OK;
-            let rv = Response::from_parts(parts, body);
-            Ok(rv)
-        },
+            let mut rw = Response::from_body("original\n");
+            rw.append_body(other);
+            rw.set_status(StatusCode::OK);
+            Ok(rw)
+        }
 
-        (&Method::GET, path) if path.starts_with("/proxy") => {
-            req.send(BACKEND)
-        },
+        (&Method::GET, path) if path.starts_with("/proxy") => Ok(req.send(BACKEND)?),
 
         (&Method::GET, "/panic!") => {
             panic!("you told me to");
-        },
+        }
 
         (&Method::GET, "/geo") => {
-            let ip = downstream_client_ip_addr();
+            let ip = req.get_client_ip_addr();
             if ip.is_none() {
-                return Ok(Response::builder().status(StatusCode::INTERNAL_SERVER_ERROR).body(Body::new()?)?);
+                return Ok(Response::from_status(StatusCode::INTERNAL_SERVER_ERROR).with_body(""));
             }
             let geodata = geo_lookup(ip.unwrap()).unwrap();
-            Ok(Response::builder()
-                .status(StatusCode::OK)
-                .body(
-                    Body::try_from(
-                        serde_json::json!({
-                            "as_name": geodata.as_name(),
-                        }).to_string()
-                    )?
-                )?
-            )
-        },
+            Ok(Response::from_status(StatusCode::OK).with_body(
+                serde_json::json!({
+                    "as_name": geodata.as_name(),
+                })
+                .to_string(),
+            ))
+        }
 
         // This one is used for example purposes, not tests
-        (&Method::GET, path) if path.starts_with("/testdata") => {
-            req.send(BACKEND)
-        },
+        (&Method::GET, path) if path.starts_with("/testdata") => Ok(req.send(BACKEND)?),
 
-        _ => Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::try_from("The page you requested could not be found")?)?
-        ),
+        _ => Ok(Response::from_status(StatusCode::NOT_FOUND)
+            .with_body("The page you requested could not be found")),
     }
 }
