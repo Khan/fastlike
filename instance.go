@@ -51,7 +51,7 @@ type Instance struct {
 
 // NewInstance returns an http.Handler that can handle a single request.
 func NewInstance(wasmbytes []byte, opts ...InstanceOption) *Instance {
-	var i = new(Instance)
+	i := new(Instance)
 	i.compile(wasmbytes)
 
 	i.requests = &RequestHandles{}
@@ -132,12 +132,12 @@ func (i *Instance) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	i.setup()
 	defer i.reset()
 
-	var loops, ok = r.Header[http.CanonicalHeaderKey("cdn-loop")]
+	loops, ok := r.Header[http.CanonicalHeaderKey("cdn-loop")]
 	if !ok {
 		loops = []string{""}
 	}
 
-	var _, yeslog = r.Header[http.CanonicalHeaderKey("fastlike-verbose")]
+	_, yeslog := r.Header[http.CanonicalHeaderKey("fastlike-verbose")]
 	if yeslog {
 		i.abilog.SetOutput(os.Stdout)
 	}
