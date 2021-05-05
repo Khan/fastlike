@@ -87,3 +87,9 @@ func (i *Instance) xqd_body_append(dst_handle int32, src_handle int32) int32 {
 
 	return int32(XqdStatusOK)
 }
+
+func (i *Instance) xqd_body_close(handle int32) int32 {
+	i.abilog.Printf("body_close")
+
+	return int32(XqdStatusOK)
+}

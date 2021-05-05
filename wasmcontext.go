@@ -56,8 +56,6 @@ func (i *Instance) compile(wasmbytes []byte) {
 	linker.DefineFunc("fastly_http_resp", "resp_header_value_get", i.wasm6("fastly_http_resp::resp_header_value_get"))
 	linker.DefineFunc("fastly_http_resp", "resp_header_remove", i.wasm3("fastly_http_resp::resp_header_remove"))
 
-	linker.DefineFunc("fastly_http_body", "close", i.wasm1("fastly_http_body::close"))
-
 	// End XQD Stubbing -}}}
 
 	// xqd.go
@@ -102,6 +100,7 @@ func (i *Instance) compile(wasmbytes []byte) {
 	linker.DefineFunc("fastly_http_body", "read", i.xqd_body_read)
 	linker.DefineFunc("fastly_http_body", "write", i.xqd_body_write)
 	linker.DefineFunc("fastly_http_body", "append", i.xqd_body_append)
+	linker.DefineFunc("fastly_http_body", "close", i.xqd_body_close)
 
 	i.wasmctx = &wasmContext{
 		store:  store,
