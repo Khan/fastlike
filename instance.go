@@ -55,7 +55,7 @@ func NewInstance(wasmbytes []byte, opts ...InstanceOption) *Instance {
 	i.compile(wasmbytes)
 
 	i.requests = &RequestHandles{}
-	i.bodies = &BodyHandles{}
+	i.bodies = NewBodyHandles()
 	i.responses = &ResponseHandles{}
 
 	i.log = log.New(ioutil.Discard, "[fastlike] ", log.Lshortfile)
@@ -108,7 +108,7 @@ func (i *Instance) reset() {
 	// reset the handles, but we can reuse the already allocated space
 	*i.requests = RequestHandles{}
 	*i.responses = ResponseHandles{}
-	*i.bodies = BodyHandles{}
+	*i.bodies = *NewBodyHandles()
 
 	i.ds_response = nil
 	i.ds_request = nil

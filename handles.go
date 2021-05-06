@@ -106,17 +106,34 @@ func (b *BodyHandle) Size() int64 {
 }
 
 type BodyHandles struct {
-	lock    sync.RWMutex
-	handles []*BodyHandle
+	lock         sync.RWMutex
+	nextHandleID int
+	handles      map[int]*BodyHandle
+}
+
+func NewBodyHandles() *BodyHandles {
+	return &BodyHandles{handles: make(map[int]*BodyHandle)}
+}
+
+func (bhs *BodyHandles) getNextHandleID() int {
+	handleID := bhs.nextHandleID
+	bhs.nextHandleID += 1
+	return handleID
+}
+
+func (bhs *BodyHandles) addBodyHandle(bh *BodyHandle) (int, *BodyHandle) {
+	bhs.lock.Lock()
+	defer bhs.lock.Unlock()
+
+	id := bhs.getNextHandleID()
+	bhs.handles[id] = bh
+
+	return id, bh
 }
 
 func (bhs *BodyHandles) Get(id int) *BodyHandle {
 	bhs.lock.RLock()
 	defer bhs.lock.RUnlock()
-
-	if id >= len(bhs.handles) {
-		return nil
-	}
 
 	return bhs.handles[id]
 }
@@ -127,11 +144,7 @@ func (bhs *BodyHandles) NewBuffer() (int, *BodyHandle) {
 	bh.reader = io.Reader(bh.buf)
 	bh.writer = io.Writer(bh.buf)
 
-	bhs.lock.Lock()
-	defer bhs.lock.Unlock()
-
-	bhs.handles = append(bhs.handles, bh)
-	return len(bhs.handles) - 1, bh
+	return bhs.addBodyHandle(bh)
 }
 
 func (bhs *BodyHandles) NewReader(rdr io.ReadCloser) (int, *BodyHandle) {
@@ -140,22 +153,14 @@ func (bhs *BodyHandles) NewReader(rdr io.ReadCloser) (int, *BodyHandle) {
 	bh.closer = rdr
 	bh.writer = ioutil.Discard
 
-	bhs.lock.Lock()
-	defer bhs.lock.Unlock()
-
-	bhs.handles = append(bhs.handles, bh)
-	return len(bhs.handles) - 1, bh
+	return bhs.addBodyHandle(bh)
 }
 
 func (bhs *BodyHandles) NewWriter(w io.Writer) (int, *BodyHandle) {
 	bh := &BodyHandle{}
 	bh.writer = w
 
-	bhs.lock.Lock()
-	defer bhs.lock.Unlock()
-
-	bhs.handles = append(bhs.handles, bh)
-	return len(bhs.handles) - 1, bh
+	return bhs.addBodyHandle(bh)
 }
 
 func (bhs *BodyHandles) Close(id int) error {
@@ -163,11 +168,12 @@ func (bhs *BodyHandles) Close(id int) error {
 	defer bhs.lock.Unlock()
 
 	// We can't use .Get() here because that'd cause a deadlock on the RWMutex
-	if id >= len(bhs.handles) {
+	bh := bhs.handles[id]
+	if bh == nil {
 		return nil
 	}
-	body := bhs.handles[id]
 
-	bhs.handles = append(bhs.handles[:id], bhs.handles[id+1:]...)
-	return body.Close()
+	delete(bhs.handles, id)
+
+	return bh.Close()
 }
