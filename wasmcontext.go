@@ -31,9 +31,10 @@ func (i *Instance) compile(wasmbytes []byte) {
 	linker := wasmtime.NewLinker(store)
 	check(linker.DefineWasi(wasi))
 
-	// XQD Stubbing -{{{
-	// TODO: All of these XQD methods are stubbed. As they are implemented, they'll be removed from
-	// here and explicitly linked in the section below.
+	// fastly-sys Stubbing -{{{
+	// TODO: All of these fastly-sys methods are stubbed. As they are
+	// implemented, they'll be removed from here and explicitly linked in the
+	// section below.
 	linker.DefineFunc("fastly_log", "endpoint_get", i.wasm3("fastly_log::endpoint_get"))
 	linker.DefineFunc("fastly_log", "write", i.wasm4("fastly_log::write"))
 
@@ -56,7 +57,7 @@ func (i *Instance) compile(wasmbytes []byte) {
 	linker.DefineFunc("fastly_http_resp", "resp_header_value_get", i.wasm6("fastly_http_resp::resp_header_value_get"))
 	linker.DefineFunc("fastly_http_resp", "resp_header_remove", i.wasm3("fastly_http_resp::resp_header_remove"))
 
-	// End XQD Stubbing -}}}
+	// End fastly-sys Stubbing -}}}
 
 	// xqd.go
 	linker.DefineFunc("fastly_abi", "init", i.xqd_init)
