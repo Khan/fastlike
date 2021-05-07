@@ -115,17 +115,13 @@ func NewBodyHandles() *BodyHandles {
 	return &BodyHandles{handles: make(map[int]*BodyHandle)}
 }
 
-func (bhs *BodyHandles) getNextHandleID() int {
-	handleID := bhs.nextHandleID
-	bhs.nextHandleID += 1
-	return handleID
-}
-
 func (bhs *BodyHandles) addBodyHandle(bh *BodyHandle) (int, *BodyHandle) {
 	bhs.lock.Lock()
 	defer bhs.lock.Unlock()
 
-	id := bhs.getNextHandleID()
+	id := bhs.nextHandleID
+	bhs.nextHandleID += 1
+
 	bhs.handles[id] = bh
 
 	return id, bh
