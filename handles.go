@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 )
 
 type fastlyMeta struct{}
@@ -30,6 +31,7 @@ func (rhs *RequestHandles) Get(id int) *RequestHandle {
 
 	return rhs.handles[id]
 }
+
 func (rhs *RequestHandles) New() (int, *RequestHandle) {
 	rh := &RequestHandle{Request: &http.Request{}}
 	rhs.handles = append(rhs.handles, rh)
@@ -56,6 +58,7 @@ func (rhs *ResponseHandles) Get(id int) *ResponseHandle {
 
 	return rhs.handles[id]
 }
+
 func (rhs *ResponseHandles) New() (int, *ResponseHandle) {
 	rh := &ResponseHandle{Response: &http.Response{}}
 	rhs.handles = append(rhs.handles, rh)
@@ -103,13 +106,30 @@ func (b *BodyHandle) Size() int64 {
 }
 
 type BodyHandles struct {
-	handles []*BodyHandle
+	lock         sync.RWMutex
+	nextHandleID int
+	handles      map[int]*BodyHandle
+}
+
+func NewBodyHandles() *BodyHandles {
+	return &BodyHandles{handles: make(map[int]*BodyHandle)}
+}
+
+func (bhs *BodyHandles) addBodyHandle(bh *BodyHandle) (int, *BodyHandle) {
+	bhs.lock.Lock()
+	defer bhs.lock.Unlock()
+
+	id := bhs.nextHandleID
+	bhs.nextHandleID += 1
+
+	bhs.handles[id] = bh
+
+	return id, bh
 }
 
 func (bhs *BodyHandles) Get(id int) *BodyHandle {
-	if id >= len(bhs.handles) {
-		return nil
-	}
+	bhs.lock.RLock()
+	defer bhs.lock.RUnlock()
 
 	return bhs.handles[id]
 }
@@ -119,8 +139,8 @@ func (bhs *BodyHandles) NewBuffer() (int, *BodyHandle) {
 	bh := &BodyHandle{buf: new(bytes.Buffer)}
 	bh.reader = io.Reader(bh.buf)
 	bh.writer = io.Writer(bh.buf)
-	bhs.handles = append(bhs.handles, bh)
-	return len(bhs.handles) - 1, bh
+
+	return bhs.addBodyHandle(bh)
 }
 
 func (bhs *BodyHandles) NewReader(rdr io.ReadCloser) (int, *BodyHandle) {
@@ -128,13 +148,28 @@ func (bhs *BodyHandles) NewReader(rdr io.ReadCloser) (int, *BodyHandle) {
 	bh.reader = rdr
 	bh.closer = rdr
 	bh.writer = ioutil.Discard
-	bhs.handles = append(bhs.handles, bh)
-	return len(bhs.handles) - 1, bh
+
+	return bhs.addBodyHandle(bh)
 }
 
 func (bhs *BodyHandles) NewWriter(w io.Writer) (int, *BodyHandle) {
 	bh := &BodyHandle{}
 	bh.writer = w
-	bhs.handles = append(bhs.handles, bh)
-	return len(bhs.handles) - 1, bh
+
+	return bhs.addBodyHandle(bh)
+}
+
+func (bhs *BodyHandles) Close(id int) error {
+	bhs.lock.Lock()
+	defer bhs.lock.Unlock()
+
+	// We can't use .Get() here because that'd cause a deadlock on the RWMutex
+	bh := bhs.handles[id]
+	if bh == nil {
+		return nil
+	}
+
+	delete(bhs.handles, id)
+
+	return bh.Close()
 }

@@ -32,7 +32,7 @@ For a more full-featured example:
 ```
 # in one terminal:
 $ cd testdata; fastly compute build; cd ..
-$ go run ./cmd/fastlike -wasm ./testdata/bin/main.wasm -proxy-to localhost:8000 -bind localhost:5000
+$ go run ./cmd/fastlike -wasm ./testdata/bin/main.wasm -proxy-to localhost:8000 -b localhost:5000
 
 # in another
 $ python3 -m http.server

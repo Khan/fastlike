@@ -3,14 +3,14 @@ package fastlike
 // xqd_multivalue is not an actual ABI method, but it's an implementation of a mechanism used by
 // the guest to make multiple hostcalls via a cursor
 // For usage, see the abi methods for headers
-func xqd_multivalue(memory *Memory, data []string, addr int32, maxlen int32, cursor int32, ending_cursor_out int32, nwritten_out int32) XqdStatus {
+func xqd_multivalue(memory *Memory, data []string, addr int32, maxlen int32, cursor int32, ending_cursor_out int32, nwritten_out int32) int32 {
 	// If there's no data, return early
 	if len(data) == 0 {
 		memory.PutUint32(uint32(0), int64(nwritten_out))
 
 		// Set the cursor to -1 to stop asking
 		memory.PutInt64(-1, int64(ending_cursor_out))
-		return XqdStatusOK
+		return int32(XqdStatusOK)
 	}
 
 	// If the cursor points past our slice, return early
@@ -19,10 +19,10 @@ func xqd_multivalue(memory *Memory, data []string, addr int32, maxlen int32, cur
 
 		// Set the cursor to -1 to stop asking
 		memory.PutInt64(-1, int64(ending_cursor_out))
-		return XqdStatusOK
+		return int32(XqdStatusOK)
 	}
 
-	var v = []byte(data[cursor])
+	v := []byte(data[cursor])
 	v = append(v, '\x00')
 
 	nwritten, err := memory.WriteAt(v, int64(addr))
@@ -40,5 +40,5 @@ func xqd_multivalue(memory *Memory, data []string, addr int32, maxlen int32, cur
 
 	memory.PutInt64(int64(ec), int64(ending_cursor_out))
 
-	return XqdStatusOK
+	return int32(XqdStatusOK)
 }

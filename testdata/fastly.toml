@@ -1,6 +1,9 @@
-version = 1
-name = "fastlike-example"
-description = "An example program for the Fastlike implementation"
+# This file describes a Fastly Compute@Edge package. To learn more visit:
+# https://developer.fastly.com/reference/fastly-toml/
+
 authors = ["alexvidal@khanacademy.org", "infrastructure@khanacademy.org"]
+description = "An example program for the Fastlike implementation"
 language = "rust"
+manifest_version = 1
+name = "fastlike-example"
 service_id = "5PjBZ4C4pQyearWZGuTxoG"
