@@ -12,10 +12,10 @@ import (
 func (i *Instance) xqd_init(abiv int64) int32 {
 	i.abilog.Printf("init: version=%d\n", abiv)
 	if abiv != 1 {
-		return int32(XqdErrUnsupported)
+		return XqdErrUnsupported
 	}
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_body_downstream_get(request_handle_out int32, body_handle_out int32) int32 {
@@ -26,7 +26,7 @@ func (i *Instance) xqd_req_body_downstream_get(request_handle_out int32, body_ha
 	// downstream requests don't have host or scheme on the URL, but we need it
 	rh.Request.URL.Host = i.ds_request.Host
 
-	if i.isSecure(i.ds_request) {
+	if i.secureFn(i.ds_request) {
 		rh.Request.URL.Scheme = "https"
 		rh.Request.Header.Set("fastly-ssl", "1")
 	} else {
@@ -46,22 +46,22 @@ func (i *Instance) xqd_req_body_downstream_get(request_handle_out int32, body_ha
 
 	i.abilog.Printf("req_body_downstream_get: rh=%d bh=%d", rhid, bhid)
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_resp_send_downstream(whandle int32, bhandle int32, stream int32) int32 {
 	if stream != 0 {
 		i.abilog.Printf("resp_send_downstream: streaming unsupported")
-		return int32(XqdErrUnsupported)
+		return XqdErrUnsupported
 	}
 
 	w, b := i.responses.Get(int(whandle)), i.bodies.Get(int(bhandle))
 	if w == nil {
 		i.abilog.Printf("resp_send_downstream: invalid response handle %d", whandle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	} else if b == nil {
 		i.abilog.Printf("resp_send_downstream: invalid body handle %d", bhandle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 	defer b.Close()
 
@@ -74,10 +74,10 @@ func (i *Instance) xqd_resp_send_downstream(whandle int32, bhandle int32, stream
 	_, err := io.Copy(i.ds_response, b)
 	if err != nil {
 		i.abilog.Printf("resp_send_downstream: copy err, got %s", err.Error())
-		return int32(XqdError)
+		return XqdError
 	}
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_downstream_client_ip_addr(octets_out int32, nwritten_out int32) int32 {
@@ -86,19 +86,19 @@ func (i *Instance) xqd_req_downstream_client_ip_addr(octets_out int32, nwritten_
 
 	// If there's no good IP on the incoming request, we can exit early
 	if ip == nil {
-		return int32(XqdStatusOK)
+		return XqdStatusOK
 	}
 
 	// Otherwise, we can just write it to memory. net.IP is implemented a byte slice, which we can
 	// write directly out
 	nwritten, err := i.memory.WriteAt(ip, int64(octets_out))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	i.memory.PutUint32(uint32(nwritten), int64(nwritten_out))
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_uap_parse(
@@ -112,7 +112,7 @@ func (i *Instance) xqd_uap_parse(
 	_, err := i.memory.ReadAt(buf, int64(addr))
 	if err != nil {
 		i.abilog.Printf("uap_parse: read err, got %s", err.Error())
-		return int32(XqdError)
+		return XqdError
 	}
 
 	useragent := string(buf)
@@ -123,32 +123,32 @@ func (i *Instance) xqd_uap_parse(
 	family_nwritten, err := i.memory.WriteAt([]byte(ua.Family), int64(family_out))
 	if err != nil {
 		i.abilog.Printf("uap_parse: family write err, got %s", err.Error())
-		return int32(XqdError)
+		return XqdError
 	}
 	i.memory.PutUint32(uint32(family_nwritten), int64(family_nwritten_out))
 
 	major_nwritten, err := i.memory.WriteAt([]byte(ua.Major), int64(major_out))
 	if err != nil {
 		i.abilog.Printf("uap_parse: major write err, got %s", err.Error())
-		return int32(XqdError)
+		return XqdError
 	}
 	i.memory.PutUint32(uint32(major_nwritten), int64(major_nwritten_out))
 
 	minor_nwritten, err := i.memory.WriteAt([]byte(ua.Minor), int64(minor_out))
 	if err != nil {
 		i.abilog.Printf("uap_parse: minor write err, got %s", err.Error())
-		return int32(XqdError)
+		return XqdError
 	}
 	i.memory.PutUint32(uint32(minor_nwritten), int64(minor_nwritten_out))
 
 	patch_nwritten, err := i.memory.WriteAt([]byte(ua.Patch), int64(patch_out))
 	if err != nil {
 		i.abilog.Printf("uap_parse: patch write err, got %s", err.Error())
-		return int32(XqdError)
+		return XqdError
 	}
 	i.memory.PutUint32(uint32(patch_nwritten), int64(patch_nwritten_out))
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func p(l *log.Logger, name string, args ...int32) {

@@ -13,12 +13,12 @@ import (
 func (i *Instance) xqd_req_version_get(handle int32, version_out int32) int32 {
 	if i.requests.Get(int(handle)) == nil {
 		i.abilog.Printf("req_version_get: invalid handle %d", handle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	i.abilog.Printf("req_version_get: handle=%d version=%d", handle, Http11)
 	i.memory.PutUint32(uint32(Http11), int64(version_out))
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_version_set(handle int32, version int32) int32 {
@@ -26,15 +26,15 @@ func (i *Instance) xqd_req_version_set(handle int32, version int32) int32 {
 
 	if i.requests.Get(int(handle)) == nil {
 		i.abilog.Printf("req_version_set: invalid handle %d", handle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	if version != int32(Http11) {
 		i.abilog.Printf("req_version_set: invalid version %d", version)
-		return int32(XqdErrUnsupported)
+		return XqdErrUnsupported
 	}
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_cache_override_set(handle int32, tag int32, ttl int32, swr int32) int32 {
@@ -42,55 +42,55 @@ func (i *Instance) xqd_req_cache_override_set(handle int32, tag int32, ttl int32
 
 	if i.requests.Get(int(handle)) == nil {
 		i.abilog.Printf("req_cache_override_set: invalid handle %d", handle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
-func (i *Instance) xqd_req_cache_override_set_v2(handle int32, tag int32, ttl int32, swr int32, sk int32, sk_len int32) int32 {
+func (i *Instance) xqd_req_cache_override_v2_set(handle int32, tag int32, ttl int32, swr int32, sk int32, sk_len int32) int32 {
 	// We don't actually *do* anything with cache overrides, since we don't have or need a cache.
 
 	if i.requests.Get(int(handle)) == nil {
-		i.abilog.Printf("cache_override_v2_set: invalid handle %d", handle)
-		return int32(XqdErrInvalidHandle)
+		i.abilog.Printf("req_cache_override_v2_set: invalid handle %d", handle)
+		return XqdErrInvalidHandle
 	}
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_method_get(handle int32, addr int32, maxlen int32, nwritten_out int32) int32 {
 	r := i.requests.Get(int(handle))
 	if r == nil {
 		i.abilog.Printf("req_method_get: invalid handle %d", handle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	if int(maxlen) < len(r.Method) {
-		return int32(XqdErrBufferLength)
+		return XqdErrBufferLength
 	}
 
 	i.abilog.Printf("req_method_get: handle=%d method=%q", handle, r.Method)
 
 	nwritten, err := i.memory.WriteAt([]byte(r.Method), int64(addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	i.memory.PutUint32(uint32(nwritten), int64(nwritten_out))
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_method_set(handle int32, addr int32, size int32) int32 {
 	r := i.requests.Get(int(handle))
 	if r == nil {
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	method := make([]byte, size)
 	_, err := i.memory.ReadAt(method, int64(addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	// Make sure the method is in the set of valid http methods
@@ -108,40 +108,40 @@ func (i *Instance) xqd_req_method_set(handle int32, addr int32, size int32) int3
 
 	if !strings.Contains(methods, strings.ToUpper(string(method))) {
 		i.abilog.Printf("req_method_set: invalid method=%q", method)
-		return int32(XqdErrHttpParse)
+		return XqdErrHttpParse
 	}
 
 	i.abilog.Printf("req_method_set: handle=%d method=%q", handle, method)
 
 	r.Method = strings.ToUpper(string(method))
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_uri_set(handle int32, addr int32, size int32) int32 {
 	r := i.requests.Get(int(handle))
 	if r == nil {
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	buf := make([]byte, size)
 	nread, err := i.memory.ReadAt(buf, int64(addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 	if nread < int(size) {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	u, err := url.Parse(string(buf))
 	if err != nil {
 		i.abilog.Printf("req_uri_set: parse error uri=%q got=%s", buf, err.Error())
-		return int32(XqdErrHttpParse)
+		return XqdErrHttpParse
 	}
 
 	i.abilog.Printf("req_uri_set: handle=%d uri=%q", handle, u)
 
 	r.URL = u
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_header_names_get(handle int32, addr int32, maxlen int32, cursor int32, ending_cursor_out int32, nwritten_out int32) int32 {
@@ -149,7 +149,7 @@ func (i *Instance) xqd_req_header_names_get(handle int32, addr int32, maxlen int
 
 	r := i.requests.Get(int(handle))
 	if r == nil {
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	names := []string{}
@@ -160,19 +160,59 @@ func (i *Instance) xqd_req_header_names_get(handle int32, addr int32, maxlen int
 	// these names are explicitly unsorted, so let's sort them ourselves
 	sort.Strings(names[:])
 
-	return int32(xqd_multivalue(i.memory, names, addr, maxlen, cursor, ending_cursor_out, nwritten_out))
+	return xqd_multivalue(i.memory, names, addr, maxlen, cursor, ending_cursor_out, nwritten_out)
 }
 
-func (i *Instance) xqd_req_header_values_get(handle int32, name_addr int32, name_size int32, addr int32, maxlen int32, cursor int32, ending_cursor_out int32, nwritten_out int32) int32 {
+func (i *Instance) xqd_req_header_remove(handle int32, name_addr int32, name_size int32) int32 {
 	r := i.requests.Get(int(handle))
 	if r == nil {
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
+	}
+
+	name := make([]byte, name_size)
+	_, err := i.memory.ReadAt(name, int64(name_addr))
+	if err != nil {
+		return XqdError
+	}
+
+	r.Header.Del(string(name))
+
+	return XqdStatusOK
+}
+
+func (i *Instance) xqd_req_header_value_get(handle int32, name_addr int32, name_size int32, addr int32, maxlen int32, nwritten_out int32) int32 {
+	r := i.requests.Get(int(handle))
+	if r == nil {
+		return XqdErrInvalidHandle
 	}
 
 	buf := make([]byte, name_size)
 	_, err := i.memory.ReadAt(buf, int64(name_addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
+	}
+
+	header := http.CanonicalHeaderKey(string(buf))
+
+	i.abilog.Printf("req_header_value_get: handle=%d header=%q\n", handle, header)
+
+	value := r.Header.Get(header)
+	nwritten, err := i.memory.WriteAt([]byte(value), int64(addr))
+	i.memory.PutUint32(uint32(nwritten), int64(nwritten_out))
+
+	return XqdStatusOK
+}
+
+func (i *Instance) xqd_req_header_values_get(handle int32, name_addr int32, name_size int32, addr int32, maxlen int32, cursor int32, ending_cursor_out int32, nwritten_out int32) int32 {
+	r := i.requests.Get(int(handle))
+	if r == nil {
+		return XqdErrInvalidHandle
+	}
+
+	buf := make([]byte, name_size)
+	_, err := i.memory.ReadAt(buf, int64(name_addr))
+	if err != nil {
+		return XqdError
 	}
 
 	header := http.CanonicalHeaderKey(string(buf))
@@ -187,19 +227,19 @@ func (i *Instance) xqd_req_header_values_get(handle int32, name_addr int32, name
 	// Sort the values otherwise cursors don't work
 	sort.Strings(values[:])
 
-	return int32(xqd_multivalue(i.memory, values, addr, maxlen, cursor, ending_cursor_out, nwritten_out))
+	return xqd_multivalue(i.memory, values, addr, maxlen, cursor, ending_cursor_out, nwritten_out)
 }
 
 func (i *Instance) xqd_req_header_values_set(handle int32, name_addr int32, name_size int32, values_addr int32, values_size int32) int32 {
 	r := i.requests.Get(int(handle))
 	if r == nil {
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	buf := make([]byte, name_size)
 	_, err := i.memory.ReadAt(buf, int64(name_addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	header := http.CanonicalHeaderKey(string(buf))
@@ -209,7 +249,7 @@ func (i *Instance) xqd_req_header_values_set(handle int32, name_addr int32, name
 	buf = make([]byte, values_size-1)
 	_, err = i.memory.ReadAt(buf, int64(values_addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	values := bytes.Split(buf, []byte("\x00"))
@@ -224,13 +264,13 @@ func (i *Instance) xqd_req_header_values_set(handle int32, name_addr int32, name
 		r.Header.Add(header, string(v))
 	}
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_uri_get(handle int32, addr int32, maxlen int32, nwritten_out int32) int32 {
 	r := i.requests.Get(int(handle))
 	if r == nil {
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	uri := r.URL.String()
@@ -238,18 +278,18 @@ func (i *Instance) xqd_req_uri_get(handle int32, addr int32, maxlen int32, nwrit
 
 	nwritten, err := i.memory.WriteAt([]byte(uri), int64(addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	i.memory.PutUint32(uint32(nwritten), int64(nwritten_out))
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_new(handle_out int32) int32 {
 	rhid, _ := i.requests.New()
 	i.abilog.Printf("req_new: handle=%d", rhid)
 	i.memory.PutUint32(uint32(rhid), int64(handle_out))
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
 
 func (i *Instance) xqd_req_send(rhandle int32, bhandle int32, backend_addr, backend_size int32, wh_out int32, bh_out int32) int32 {
@@ -258,19 +298,19 @@ func (i *Instance) xqd_req_send(rhandle int32, bhandle int32, backend_addr, back
 	r := i.requests.Get(int(rhandle))
 	if r == nil {
 		i.abilog.Printf("req_send: invalid request handle=%d", rhandle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	b := i.bodies.Get(int(bhandle))
 	if b == nil {
 		i.abilog.Printf("req_send: invalid body handle=%d", bhandle)
-		return int32(XqdErrInvalidHandle)
+		return XqdErrInvalidHandle
 	}
 
 	buf := make([]byte, backend_size)
 	_, err := i.memory.ReadAt(buf, int64(backend_addr))
 	if err != nil {
-		return int32(XqdError)
+		return XqdError
 	}
 
 	backend := string(buf)
@@ -279,7 +319,7 @@ func (i *Instance) xqd_req_send(rhandle int32, bhandle int32, backend_addr, back
 
 	req, err := http.NewRequest(r.Method, r.URL.String(), b)
 	if err != nil {
-		return int32(XqdErrHttpUserInvalid)
+		return XqdErrHttpUserInvalid
 	}
 
 	req.Header = r.Header.Clone()
@@ -303,9 +343,9 @@ func (i *Instance) xqd_req_send(rhandle int32, bhandle int32, backend_addr, back
 	// If the backend is geolocation, we select the geobackend explicitly
 	var handler http.Handler
 	if backend == "geolocation" {
-		handler = i.geobackend
+		handler = geoHandler(i.geolookup)
 	} else {
-		handler = i.backends(backend)
+		handler = i.getBackend(backend)
 	}
 
 	// TODO: Is there a better way to get an *http.Response from an http.Handler?
@@ -331,5 +371,5 @@ func (i *Instance) xqd_req_send(rhandle int32, bhandle int32, backend_addr, back
 	i.memory.PutUint32(uint32(whid), int64(wh_out))
 	i.memory.PutUint32(uint32(bhid), int64(bh_out))
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }

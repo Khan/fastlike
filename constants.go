@@ -1,31 +1,31 @@
 package fastlike
 
-// XqdStatus is a status code returned from every XQD ABI method as described in crate
-// `fastly-shared`. Unfortunately, the version of wasmtime that we're using
-// fails the function type check if we use this as the return type from all of
-// the exported functions. Instead, we now have to return `int32` and case the
-// constants below when returning them. (eg. `return int32(XqdStatusOK)`).
-type XqdStatus int32
-
+// Constants used for return values from ABI functions.
+// See https://docs.rs/fastly-shared for more.
 const (
-	XqdStatusOK           XqdStatus = 0
-	XqdError              XqdStatus = 1
-	XqdErrInvalidArgument XqdStatus = 2
-	XqdErrInvalidHandle   XqdStatus = 3
-	XqdErrBufferLength    XqdStatus = 4
-	XqdErrUnsupported     XqdStatus = 5
-	XqdErrBadAlignment    XqdStatus = 6
-	XqdErrHttpParse       XqdStatus = 7
-	XqdErrHttpUserInvalid XqdStatus = 8
-	XqdErrHttpIncomplete  XqdStatus = 9
+	XqdStatusOK           int32 = 0
+	XqdError              int32 = 1
+	XqdErrInvalidArgument int32 = 2
+	XqdErrInvalidHandle   int32 = 3
+	XqdErrBufferLength    int32 = 4
+	XqdErrUnsupported     int32 = 5
+	XqdErrBadAlignment    int32 = 6
+	XqdErrHttpParse       int32 = 7
+	XqdErrHttpUserInvalid int32 = 8
+	XqdErrHttpIncomplete  int32 = 9
 )
 
-type HttpVersion int32
+// HandleInvalid is returned to guests when they attempt to obtain a handle that doesn't exist. For
+// instance, opening a dictionary that is not registered
+// Note that this is dictinct from XqdErrInvalidHandle, which is returned when callers attempt to
+// *use* an otherwise invalid handle, such as attempting to send a request whose handle has not
+// been created.
+const HandleInvalid = 4294967295 - 1
 
 const (
-	Http09 HttpVersion = 0
-	Http10 HttpVersion = 1
-	Http11 HttpVersion = 2
-	Http2  HttpVersion = 3
-	Http3  HttpVersion = 4
+	Http09 int32 = 0
+	Http10 int32 = 1
+	Http11 int32 = 2
+	Http2  int32 = 3
+	Http3  int32 = 4
 )

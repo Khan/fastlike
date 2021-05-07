@@ -10,7 +10,7 @@ func xqd_multivalue(memory *Memory, data []string, addr int32, maxlen int32, cur
 
 		// Set the cursor to -1 to stop asking
 		memory.PutInt64(-1, int64(ending_cursor_out))
-		return int32(XqdStatusOK)
+		return XqdStatusOK
 	}
 
 	// If the cursor points past our slice, return early
@@ -19,10 +19,14 @@ func xqd_multivalue(memory *Memory, data []string, addr int32, maxlen int32, cur
 
 		// Set the cursor to -1 to stop asking
 		memory.PutInt64(-1, int64(ending_cursor_out))
-		return int32(XqdStatusOK)
+		return XqdStatusOK
 	}
 
+	if len([]byte(data[cursor]))+1 > int(maxlen) {
+		return XqdErrBufferLength
+	}
 	v := []byte(data[cursor])
+
 	v = append(v, '\x00')
 
 	nwritten, err := memory.WriteAt(v, int64(addr))
@@ -40,5 +44,5 @@ func xqd_multivalue(memory *Memory, data []string, addr int32, maxlen int32, cur
 
 	memory.PutInt64(int64(ec), int64(ending_cursor_out))
 
-	return int32(XqdStatusOK)
+	return XqdStatusOK
 }
