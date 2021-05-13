@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"fastlike.dev"
+	"github.com/Khan/fastlike"
 )
 
 const wasmfile = "testdata/target/wasm32-wasi/debug/example.wasm"
@@ -166,7 +166,7 @@ func TestFastlike(t *testing.T) {
 			st.Fail()
 		}
 
-		var payload = struct {
+		payload := struct {
 			ASName string `json:"as_name"`
 		}{}
 		json.NewDecoder(w.Body).Decode(&payload)

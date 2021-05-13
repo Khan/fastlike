@@ -64,7 +64,7 @@ func (i *Instance) link(linker *wasmtime.Linker) {
 	linker.DefineFunc("fastly_http_resp", "header_insert", i.wasm5("header_insert"))
 	linker.DefineFunc("fastly_http_resp", "header_value_get", i.wasm6("header_value_get"))
 	linker.DefineFunc("fastly_http_resp", "header_remove", i.wasm3("header_remove"))
-	// End XQD Stubbing -}}}
+	// End fastly-sys Stubbing -}}}
 
 	// xqd.go
 	linker.DefineFunc("fastly_abi", "init", i.xqd_init)

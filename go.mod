@@ -1,4 +1,4 @@
-module fastlike.dev
+module github.com/Khan/fastlike
 
 go 1.14
 
