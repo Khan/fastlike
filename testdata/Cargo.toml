@@ -1,5 +1,5 @@
 [package]
-name = "fastlike-example"
+name = "example"
 version = "0.1.0"
 authors = []
 edition = "2018"
@@ -9,4 +9,4 @@ debug = true
 
 [dependencies]
 fastly = "^0.7"
-serde_json = "*"
+serde_json = "1.0"

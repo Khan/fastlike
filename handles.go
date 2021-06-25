@@ -20,10 +20,12 @@ type RequestHandle struct {
 	hasBody bool
 }
 
+// RequestHandles is a slice of RequestHandle with functions to get and create
 type RequestHandles struct {
 	handles []*RequestHandle
 }
 
+// Get returns the RequestHandle identified by id or nil if one does not exist.
 func (rhs *RequestHandles) Get(id int) *RequestHandle {
 	if id >= len(rhs.handles) {
 		return nil
@@ -32,6 +34,7 @@ func (rhs *RequestHandles) Get(id int) *RequestHandle {
 	return rhs.handles[id]
 }
 
+// New creates a new RequestHandle and returns its handle id and the handle itself.
 func (rhs *RequestHandles) New() (int, *RequestHandle) {
 	rh := &RequestHandle{Request: &http.Request{}}
 	rhs.handles = append(rhs.handles, rh)
@@ -47,10 +50,12 @@ type ResponseHandle struct {
 	hasBody bool
 }
 
+// ResponseHandles is a slice of ResponseHandle with functions to get and create
 type ResponseHandles struct {
 	handles []*ResponseHandle
 }
 
+// Get returns the ResponseHandle identified by id or nil if one does not exist.
 func (rhs *ResponseHandles) Get(id int) *ResponseHandle {
 	if id >= len(rhs.handles) {
 		return nil
@@ -59,8 +64,9 @@ func (rhs *ResponseHandles) Get(id int) *ResponseHandle {
 	return rhs.handles[id]
 }
 
+// New creates a new ResponseHandle and returns its handle id and the handle itself.
 func (rhs *ResponseHandles) New() (int, *ResponseHandle) {
-	rh := &ResponseHandle{Response: &http.Response{}}
+	rh := &ResponseHandle{Response: &http.Response{StatusCode: 200}}
 	rhs.handles = append(rhs.handles, rh)
 	return len(rhs.handles) - 1, rh
 }
@@ -68,13 +74,19 @@ func (rhs *ResponseHandles) New() (int, *ResponseHandle) {
 // BodyHandle represents a body. It could be readable or writable, but not both.
 // For cases where it's already connected to a request or response body, the reader or writer
 // properties will reference the original request or response respectively.
-// For new bodies, `buf` will hold the contents and either the reader or writer will wrap it.
+// For new bodies, buf will hold the contents and either the reader or writer will wrap it.
 type BodyHandle struct {
+
+	// reader, writer, and closer are connected to the existing request/response body, if one exists
 	reader io.Reader
 	writer io.Writer
 	closer io.Closer
 
-	buf    *bytes.Buffer
+	// for bodies created outside of a request/response, buf holds the body content and
+	// reader/writer/closer wrap it
+	buf *bytes.Buffer
+
+	// length is the number of bytes in the body
 	length int64
 }
 
@@ -105,6 +117,7 @@ func (b *BodyHandle) Size() int64 {
 	return b.length
 }
 
+// BodyHandles is a slice of BodyHandle with methods to get and create
 type BodyHandles struct {
 	lock         sync.RWMutex
 	nextHandleID int
@@ -127,6 +140,7 @@ func (bhs *BodyHandles) addBodyHandle(bh *BodyHandle) (int, *BodyHandle) {
 	return id, bh
 }
 
+// Get returns the BodyHandle identified by id or nil if one does not exist
 func (bhs *BodyHandles) Get(id int) *BodyHandle {
 	bhs.lock.RLock()
 	defer bhs.lock.RUnlock()
@@ -143,6 +157,7 @@ func (bhs *BodyHandles) NewBuffer() (int, *BodyHandle) {
 	return bhs.addBodyHandle(bh)
 }
 
+// NewReader creates a BodyHandle whose reader and closer is connected to the supplied ReadCloser
 func (bhs *BodyHandles) NewReader(rdr io.ReadCloser) (int, *BodyHandle) {
 	bh := &BodyHandle{}
 	bh.reader = rdr
@@ -152,6 +167,7 @@ func (bhs *BodyHandles) NewReader(rdr io.ReadCloser) (int, *BodyHandle) {
 	return bhs.addBodyHandle(bh)
 }
 
+// NewWriter creates a BodyHandle whose writer is connected to the supplied Writer
 func (bhs *BodyHandles) NewWriter(w io.Writer) (int, *BodyHandle) {
 	bh := &BodyHandle{}
 	bh.writer = w

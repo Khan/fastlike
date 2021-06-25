@@ -78,6 +78,24 @@ fn main(mut req: Request) -> Result<Response, Error> {
             ))
         }
 
+        (&Method::GET, "/log") => {
+            use fastly::log::Endpoint;
+            use std::io::Write;
+            let mut endpoint = Endpoint::from_name("default");
+            writeln!(endpoint, "Hello from fastlike!").unwrap();
+            Ok(Response::from_status(StatusCode::NO_CONTENT).with_body(""))
+        }
+
+        (&Method::GET, path) if path.starts_with("/dictionary") => {
+            // open the dictionary and get the key specified in the path
+            let parts: Vec<&str> = path[1..].split("/").collect();
+            let (name, key) = (parts[1], parts[2]);
+            use fastly::Dictionary;
+            let dict = Dictionary::open(name);
+            let value = dict.get(key).unwrap();
+            Ok(Response::from_status(StatusCode::OK).with_body(Body::from(value)))
+        }
+
         // This one is used for example purposes, not tests
         (&Method::GET, path) if path.starts_with("/testdata") => Ok(req.send(BACKEND)?),
 
