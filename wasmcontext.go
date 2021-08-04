@@ -182,6 +182,7 @@ func (i *Instance) linklegacy(linker *wasmtime.Linker) {
 	linker.DefineFunc(i.wasmctx.store, "env", "xqd_resp_header_names_get", i.xqd_resp_header_names_get)
 	linker.DefineFunc(i.wasmctx.store, "env", "xqd_resp_header_values_get", i.xqd_resp_header_values_get)
 	linker.DefineFunc(i.wasmctx.store, "env", "xqd_resp_header_values_set", i.xqd_resp_header_values_set)
+	linker.DefineFunc(i.wasmctx.store, "env", "xqd_resp_send_downstream", i.xqd_resp_send_downstream)
 
 	// xqd_body.go
 	linker.DefineFunc(i.wasmctx.store, "fastly_http_body", "new", i.xqd_body_new)
